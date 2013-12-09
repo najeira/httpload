@@ -260,20 +260,34 @@ func NewConfig() *Config {
 	var requests int
 	var clients int
 	var path string
+	var filename string
 	var keepAlive bool
 	var compression bool
 	var connectTimeout int
 	var readTimeout int
 	var writeTimeout int
-	flag.IntVar(&requests, "r", -1, "Number of requests per client")
-	flag.IntVar(&clients, "c", 100, "Number of concurrent clients")
+	flag.IntVar(&requests, "r", 0, "Number of requests")
+	flag.IntVar(&clients, "c", 1, "Number of concurrent clients")
 	flag.StringVar(&path, "u", "", "URL")
+	flag.StringVar(&filename, "f", "", "Config file")
 	flag.BoolVar(&keepAlive, "k", true, "Use HTTP keep-alive")
 	flag.BoolVar(&compression, "g", true, "Use response compression")
 	flag.IntVar(&connectTimeout, "tc", 0, "Connect timeout (in milliseconds)")
 	flag.IntVar(&readTimeout, "tr", 0, "Read timeout (in milliseconds)")
 	flag.IntVar(&writeTimeout, "tw", 0, "Write timeout (in milliseconds)")
 	flag.Parse()
+
+	if requests <= 0 {
+		fmt.Println("Number of requests required.")
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	if path == "" && filename == "" {
+		fmt.Println("URL or Config file required.")
+		flag.Usage()
+		os.Exit(1)
+	}
 
 	// TODO: reading actions from file
 
