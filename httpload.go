@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
+	//"log"
 	"math"
 	"net"
 	"net/http"
@@ -180,10 +180,10 @@ func (this *Client) Do(req *http.Request) {
 	res, err := this.HttpClient.Do(req)
 	this.Requests++
 	if err != nil {
-		log.Fatal(err)
+		//log.Fatal(err)
 		this.NetworkFailed++
 	} else if res == nil {
-		log.Fatal("response is nil")
+		//log.Fatal("response is nil")
 		this.NetworkFailed++
 	} else {
 		defer res.Body.Close()
@@ -208,7 +208,7 @@ func (this *Client) Run(count int, config *Config, done *sync.WaitGroup) {
 		action := config.Actions[actionIndex]
 		req, err := NewRequest(action, config)
 		if err != nil {
-			log.Fatal(err, req)
+			//log.Fatal(err, req)
 			this.NetworkFailed++
 		} else {
 			this.Do(req)
