@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"crypto/tls"
 	"flag"
 	"fmt"
@@ -177,6 +179,7 @@ func NewRequest(action *Action, config *Config) (*http.Request, error) {
 }
 
 func (this *Client) Do(req *http.Request) {
+	//fmt.Println(req.URL.String())
 	res, err := this.HttpClient.Do(req)
 	this.Requests++
 	if err != nil {
@@ -289,23 +292,35 @@ func NewConfig() *Config {
 		os.Exit(1)
 	}
 
-	// TODO: reading actions from file
-
-	u, err := url.Parse(path)
-	if err != nil {
-		panic(fmt.Errorf("invalid url: %v", path))
+	var err error
+	var urls []string
+	if filename != "" {
+		urls, err = readConfigFile(filename)
+		if err != nil {
+			panic(fmt.Errorf("failed to parse the config file"))
+		}
+	} else {
+		urls = []string{path}
 	}
 
 	var actions []*Action
-
-	action := &Action{
-		Url:        u,
-		Method:     "GET",
-		Header:     nil,
-		Body:       nil,
-		BodyLength: 0,
+	for _, ursStr := range urls {
+		if ursStr == "" {
+			continue
+		}
+		u, err := url.Parse(ursStr)
+		if err != nil {
+			panic(fmt.Errorf("invalid url: %v", ursStr))
+		}
+		action := &Action{
+			Url:        u,
+			Method:     "GET",
+			Header:     nil,
+			Body:       nil,
+			BodyLength: 0,
+		}
+		actions = append(actions, action)
 	}
-	actions = []*Action{action}
 
 	config := &Config{
 		Actions:        actions,
@@ -320,6 +335,60 @@ func NewConfig() *Config {
 	}
 
 	return config
+}
+
+func readLine(r *bufio.Reader) (string, error) {
+	buffer := bytes.NewBuffer(make([]byte, 0))
+	for {
+		r1, err := readRune(r)
+		if err != nil {
+			if err == io.EOF {
+				return buffer.String(), io.EOF
+			}
+			return "", err
+		} else if r1 == '\n' {
+			return buffer.String(), nil
+		}
+		buffer.WriteRune(r1)
+	}
+	panic("unreachable")
+}
+
+func readRune(r *bufio.Reader) (rune, error) {
+	r1, _, err := r.ReadRune()
+	if r1 == '\r' {
+		r1, _, err = r.ReadRune()
+		if err == nil {
+			if r1 != '\n' {
+				r.UnreadRune()
+				r1 = '\r'
+			}
+		}
+	}
+	return r1, err
+}
+
+func readConfigFile(filename string) ([]string, error) {
+	var err error
+	var file *os.File
+	if file, err = os.Open(filename); err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	lines := make([]string, 0)
+	reader := bufio.NewReader(file)
+	for {
+		line, err := readLine(reader)
+		if err != nil {
+			if err != io.EOF {
+				return nil, err
+			}
+			break
+		} else {
+			lines = append(lines, line)
+		}
+	}
+	return lines, nil
 }
 
 func printResults(clients []*Client, elapsed time.Duration) {
